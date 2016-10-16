@@ -26,6 +26,7 @@ to be used to contexts where it will be fast enough.
 
 It implements hooks for which callbacks can be registered so a callback can
 be invoked:
+
 * with the index and value of a element fetched from list. This callback
   can alter the value before it is passed to external code, or throw
   an exception to prevent the value being retrieved.
@@ -42,6 +43,7 @@ and are called multiple times for batch operations such as extend, accessing
 the list using a slice, etc.
 
 It addition to these callbacks can be invoked:
+
 * before and after any operation that modifies or fetches any information from
   the list is run;
 * to notify that an error has occurred part way through a batch operation, as
