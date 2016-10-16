@@ -42,7 +42,7 @@ These 3 callbacks are intended to handle a single fetch, addition and removal
 and are called multiple times for batch operations such as extend, accessing
 the list using a slice, etc.
 
-It addition to these callbacks can be invoked:
+It addition to this, functions can be registered as callbacks to be invoked:
 
 * before and after any operation that modifies or fetches any information from
   the list is run;
@@ -50,7 +50,8 @@ It addition to these callbacks can be invoked:
   well as callbacks to reflect reverts to the list to get it back to it's 
   state prior to operation.
 
-There are also callbacks that can invoked when searching and sorting the list.
+Functions can also be registered as callbacks to be invoked when searching
+and sorting the list.
 
 Finally methods are distributed across multiple mixins to allow for partial 
 implementation of the list interface.
