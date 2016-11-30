@@ -20,14 +20,26 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
 """
 
 
-class CallbackDoesNotExist(Exception):
+class PluggableListException(Exception):
+    """
+    Base for exceptions throw by this module.
+    """
+
+
+class CallbackDoesNotExist(PluggableListException):
     """
     Raised when a callback that is not defined is called.
     """
     pass
 
 
-class UnknownHook(Exception):
+class HookRegistrationError(PluggableListException):
+    """
+    Raised when there's an error registering a hook.
+    """
+
+
+class UnknownHook(HookRegistrationError):
     """
     Raised when an attempt is made to register a hook of an unknown type.
     """
@@ -37,7 +49,7 @@ class UnknownHook(Exception):
         super().__init__()
 
 
-class HookAlreadyRegistered(Exception):
+class HookAlreadyRegistered(HookRegistrationError):
     """
     Raised when an attempt is made to register a hook that has already been
     registered.
@@ -47,19 +59,23 @@ class HookAlreadyRegistered(Exception):
         super().__init__()
 
 
-class ToFewValues(Exception):
+class IncorrectNumberOfValues(PluggableListException):
+    """
+    Called when the number values given for an operation is 
+    incorrect.
+    """
+    def __init__(self, count):
+        self.count = count
+        super().__init__()
+
+
+class TooFewValues(IncorrectNumberOfValues):
     """
     Called when to few values are given for an operation.
     """
-    def __init__(self, count):
-        self.count = count
-        super().__init__()
 
 
-class ToManyValues(Exception):
+class TooManyValues(IncorrectNumberOfValues):
     """
     Called when to many values are given for an operation.
     """
-    def __init__(self, count):
-        self.count = count
-        super().__init__()

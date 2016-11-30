@@ -1,7 +1,7 @@
 """
 Functions to help with various iteration operations.
 
-Copyright (C) 2016 Aubrey Stark-Toller <aubrey@deepearth.uk>
+Copyright (C) 2016 Aubrey Stark-Tooller <aubrey@deepearth.uk>
 
 This program is free software: you can redistribute it and/or modify
 it under the terms of the GNU General Public License as published by
@@ -20,7 +20,7 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
 import functools
 from ..constants import REGISTER_ATTR
-from ..exceptions import ToFewValues, ToManyValues
+from ..exceptions import TooFewValues, TooManyValues
 
 
 def insertions(list_len, start, step, iterable_obj):
@@ -39,7 +39,7 @@ def insertions(list_len, start, step, iterable_obj):
 
     The iterator will stop when `value_iter` has no more values to yield.
     If the position at which the next value would be inserted is beyond
-    the target list then ToManyValues exception is raised.
+    the target list then TooManyValues exception is raised.
     """
     idx = start
     list_len = list_len
@@ -51,7 +51,7 @@ def insertions(list_len, start, step, iterable_obj):
         if idx < 0 or idx > list_len:
             remaining = sum(1 for _ in iterator)
             if remaining != 0:
-                raise ToManyValues(count + remaining)
+                raise TooManyValues(count + remaining)
             else:
                 raise StopIteration()
         else:
@@ -93,7 +93,7 @@ def yield_from(iterable_obj):
 def _iter_func_with_max(max_len, iterator):
     """
     Generator that yields at most `max_len` values from `iterator`. If the
-    iterator yields more values than `max_len` a `ToManyValues` exception is
+    iterator yields more values than `max_len` a `TooManyValues` exception is
     raised.
     """
     count = 0
@@ -102,16 +102,16 @@ def _iter_func_with_max(max_len, iterator):
         if count <= max_len:
             yield value
         else:
-            raise ToManyValues(count + sum(1 for _ in iterator))
+            raise TooManyValues(count + sum(1 for _ in iterator))
 
 
 def restricted_iter(min_len, max_len, iterable_obj):
     """
     Generator that yields values from `iterable_obj` and:
-    * if `min_len` is not None, raises a `ToFewValues` exception if
+    * if `min_len` is not None, raises a `TooFewValues` exception if
       `iterable_obj` has yielded all values and the number of values
       is stricly less than `min_len`;
-    * if `max_len` is not None, raises a `ToManyValues` exception if the
+    * if `max_len` is not None, raises a `TooManyValues` exception if the
       number of values yield by `iterable_obj` is strictly greater than
       `max_len`.
     """
@@ -127,7 +127,7 @@ def restricted_iter(min_len, max_len, iterable_obj):
         yield value
 
     if min_len is not None and count < min_len:
-        raise ToFewValues(count)
+        raise TooFewValues(count)
 
 
 def attrs_with_a_register(attrs):

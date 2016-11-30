@@ -234,7 +234,7 @@ class SetItemMixin:
                             idx,
                             invoke(value_to_set)(constants.Hook.set, idx, value_to_set)
                         )
-                except (exceptions.ToFewValues, exceptions.ToManyValues) as exp:
+                except exceptions.IncorrectNumberOfValues as exp:
                     raise ValueError(
                         'attempt to assign sequence of size {} to '
                         'extended slice of size {}'
