@@ -22,7 +22,7 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
 class PluggableListException(Exception):
     """
-    Base for exceptions throw by this module.
+    Base for exceptions thrown by this module.
     """
 
 
@@ -30,7 +30,6 @@ class CallbackDoesNotExist(PluggableListException):
     """
     Raised when a callback that is not defined is called.
     """
-    pass
 
 
 class HookRegistrationError(PluggableListException):
