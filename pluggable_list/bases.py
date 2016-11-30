@@ -20,22 +20,18 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
 """
 
 
-from .constants import  CONTROL_ATTR, DATA_ATTR, Hook
-from .control import Control
-from .utils.iter_tools import (
-    insertions, attrs_with_a_register, del_indices, restricted_iter
-)
-from .exceptions import (
-    UnknownHook, HookAlreadyRegistered, ToFewValues, ToManyValues,
-    CallbackDoesNotExist
-)
+from . import exceptions, control, constants
+from .utils import iter_tools
 
 
 def get_list_attrs(pl_obj):
     """
     Return the control and data objects for a pluggable list object.
     """
-    return getattr(pl_obj, CONTROL_ATTR), getattr(pl_obj, DATA_ATTR)
+    return (
+        getattr(pl_obj, constants.CONTROL_ATTR),
+        getattr(pl_obj, constants.DATA_ATTR)
+    )
 
 
 class PluggableListIter:
@@ -59,7 +55,7 @@ class PluggableListIter:
                     self._stop = True
                     raise StopIteration()
                 else:
-                    value = invoke(value)(Hook.get, self._idx, value)
+                    value = invoke(value)(constants.Hook.get, self._idx, value)
                     self._idx += 1
                     return value
 
@@ -71,18 +67,18 @@ class PluggableListMeta(type):
     def __new__(mcs, name, bases, attrs):
         callbacks = {}
 
-        for _, attr, register in attrs_with_a_register(attrs):
+        for _, attr, register in iter_tools.attrs_with_a_register(attrs):
             for hook in register:
                 if hook in callbacks:
-                    raise HookAlreadyRegistered(hook)
-                elif hook in Hook:
+                    raise exceptions.HookAlreadyRegistered(hook)
+                elif hook in constants.Hook:
                     callbacks[hook] = attr
                 else:
-                    raise UnknownHook(hook, attr)
+                    raise exceptions.UnknownHook(hook, attr)
 
         bases_iter = iter(bases)
 
-        unseen_hooks = set(Hook).difference(callbacks)
+        unseen_hooks = set(constants.Hook).difference(callbacks)
 
         while unseen_hooks:
             try:
@@ -91,7 +87,7 @@ class PluggableListMeta(type):
                 break
 
             try:
-                ctl = getattr(base, CONTROL_ATTR)
+                ctl = getattr(base, constants.CONTROL_ATTR)
             except AttributeError:
                 pass
             else:
@@ -100,14 +96,14 @@ class PluggableListMeta(type):
                     try:
                         callbacks[hook] = ctl.get_callback(hook)
                         found.add(hook)
-                    except CallbackDoesNotExist:
+                    except exceptions.CallbackDoesNotExist:
                         pass
 
                 unseen_hooks -= found
 
         new_cls = type.__new__(mcs, name, bases, attrs)
-        ctl = Control(new_cls, callbacks)
-        setattr(new_cls, CONTROL_ATTR, ctl)
+        ctl = control.Control(new_cls, callbacks)
+        setattr(new_cls, constants.CONTROL_ATTR, ctl)
 
         return new_cls
 
@@ -124,20 +120,20 @@ class BasePluggableList(CallbackMixin):
     """
     def __init__(self, iterable_obj=None):
         data = []
-        setattr(self, DATA_ATTR, data)
+        setattr(self, constants.DATA_ATTR, data)
 
         if iterable_obj is not None:
-            with getattr(self, CONTROL_ATTR).op(
+            with getattr(self, constants.CONTROL_ATTR).op(
                 self, modify=True, safe=True
             ) as invoke:
                 for idx, value in enumerate(iterable_obj):
-                    data.append(invoke(value)(Hook.set, idx, value))
+                    data.append(invoke(value)(constants.Hook.set, idx, value))
 
     def copy(self):
         """
         Return a shallow copy of the pluggable list
         """
-        return getattr(self, CONTROL_ATTR).create_copy(self)
+        return getattr(self, constants.CONTROL_ATTR).create_copy(self)
 
     def __getitem__(self, spec):
         ctl, data = get_list_attrs(self)
@@ -145,7 +141,7 @@ class BasePluggableList(CallbackMixin):
         with ctl.op(self, fetch=True, safe=True) as invoke:
             def get(idx):
                 value = data[idx]
-                return invoke(value)(Hook.get, idx, value)
+                return invoke(value)(constants.Hook.get, idx, value)
 
             if isinstance(spec, slice):
                 return [get(idx) for idx in range(*spec.indices(len(data)))]
@@ -158,15 +154,15 @@ class BasePluggableList(CallbackMixin):
     def __eq__(self, other):
         return (
             self.__class__ == other.__class__ and
-            getattr(self, DATA_ATTR) == getattr(self, DATA_ATTR)
+            getattr(self, constants.DATA_ATTR) == getattr(self, constants.DATA_ATTR)
         )
 
     def __contains__(self, value):
         ctl, data = get_list_attrs(self)
 
         with ctl.op(self, fetch=True) as invoke:
-            if ctl.has_callback(Hook.search):
-                return any(invoke(Hook.search, v, value) for v in data)
+            if ctl.has_callback(constants.Hook.search):
+                return any(invoke(constants.Hook.search, v, value) for v in data)
             else:
                 return any(v == value for v in data)
 
@@ -206,8 +202,8 @@ class SetItemMixin:
                             # value is an empty sequence, nothing more to do.
                             return None
 
-                for idx in del_indices(indices):
-                    invoke(None)(Hook.remove, idx, data[idx])
+                for idx in iter_tools.del_indices(indices):
+                    invoke(None)(constants.Hook.remove, idx, data[idx])
                     del data[idx]
 
                 if spec.step is None or spec.step > 0:
@@ -226,19 +222,19 @@ class SetItemMixin:
                     start = indices[0] - len(indices) + 1
                     step = spec.step + 1
 
-                pair_iter = restricted_iter(
+                pair_iter = iter_tools.restricted_iter(
                     strict_value_count,
                     strict_value_count,
-                    insertions(len(data), start, step, value)
+                    iter_tools.insertions(len(data), start, step, value)
                 )
 
                 try:
                     for idx, value_to_set in pair_iter:
                         data.insert(
                             idx,
-                            invoke(value_to_set)(Hook.set, idx, value_to_set)
+                            invoke(value_to_set)(constants.Hook.set, idx, value_to_set)
                         )
-                except (ToFewValues, ToManyValues) as exp:
+                except (exceptions.ToFewValues, exceptions.ToManyValues) as exp:
                     raise ValueError(
                         'attempt to assign sequence of size {} to '
                         'extended slice of size {}'
@@ -246,9 +242,9 @@ class SetItemMixin:
                     )
             else:
                 idx = len(data) + spec if spec < 0 else spec
-                invoke(None)(Hook.remove, idx, data[idx])
+                invoke(None)(constants.Hook.remove, idx, data[idx])
                 del data[idx]
-                data.insert(idx, invoke(value)(Hook.set, idx, value))
+                data.insert(idx, invoke(value)(constants.Hook.set, idx, value))
 
 
 class AppendMixin:
@@ -261,7 +257,7 @@ class AppendMixin:
         """
         ctl, data = get_list_attrs(self)
         with ctl.op(self, modify=True, safe=True) as invoke:
-            data.append(invoke(value)(Hook.set, len(data), value))
+            data.append(invoke(value)(constants.Hook.set, len(data), value))
 
 
     def extend(self, iterable_obj):
@@ -272,7 +268,7 @@ class AppendMixin:
         ctl, data = get_list_attrs(self)
         with ctl.op(self, safe=True, modify=True) as invoke:
             for idx, value in enumerate(iterable_obj, start=len(data)):
-                data.append(invoke(value)(Hook.set, idx, value))
+                data.append(invoke(value)(constants.Hook.set, idx, value))
 
 
 class InsertMixin(AppendMixin):
@@ -287,7 +283,7 @@ class InsertMixin(AppendMixin):
         ctl, data = get_list_attrs(self)
         with ctl.op(self, modify=True, safe=True) as invoke:
             idx = max(idx + len(data), 0) if idx < 0 else min(idx, len(data))
-            data.insert(idx, invoke(value)(Hook.set, idx, value))
+            data.insert(idx, invoke(value)(constants.Hook.set, idx, value))
 
 
 class SetMixin(InsertMixin, SetItemMixin):
@@ -305,7 +301,7 @@ class ClearMixin:
         ctl, data = get_list_attrs(self)
         with ctl.op(self, modify=True, safe=True) as invoke:
             while data:
-                invoke(None)(Hook.remove, 0, data[0])
+                invoke(None)(constants.Hook.remove, 0, data[0])
                 del data[0]
 
 
@@ -324,7 +320,7 @@ class DelMixin(ClearMixin):
         with ctl.op(self, modify=True, fetch=True, safe=True) as invoke:
             idx = len(data) if idx is None else idx
             value = data[idx]
-            value = invoke(value)(Hook.remove, idx, value)
+            value = invoke(value)(constants.Hook.remove, idx, value)
             del data[idx]
 
     def __delitem__(self, spec):
@@ -334,12 +330,12 @@ class DelMixin(ClearMixin):
             if isinstance(spec, slice):
                 indices = tuple(range(*spec.indices(len(data))))
 
-                for idx in del_indices(indices):
-                    invoke(None)(Hook.remove, idx, data[idx])
+                for idx in iter_tools.del_indices(indices):
+                    invoke(None)(constants.Hook.remove, idx, data[idx])
                     del data[idx]
             else:
                 idx = len(data) + spec if spec < 0 else spec
-                invoke(None)(Hook.remove, idx, data[idx])
+                invoke(None)(constants.Hook.remove, idx, data[idx])
                 del data[idx]
 
 
@@ -354,8 +350,8 @@ class CountMixin:
         ctl, data = get_list_attrs(self)
 
         with ctl.op(self, fetch=True) as invoke:
-            if ctl.has_callback(Hook.search):
-                return sum(1 for v in data if invoke(Hook.search, v, value))
+            if ctl.has_callback(constants.Hook.search):
+                return sum(1 for v in data if invoke(constants.Hook.search, v, value))
             else:
                 return sum(1 for v in data if v == value)
 
@@ -372,9 +368,9 @@ class IndexMixin:
         ctl, data = get_list_attrs(self)
 
         with ctl.op(self, fetch=True) as invoke:
-            if ctl.has_callback(Hook.search):
+            if ctl.has_callback(constants.Hook.search):
                 for idx, in_value in enumerate(data):
-                    if invoke(Hook.search, in_value, value):
+                    if invoke(constants.Hook.search, in_value, value):
                         return idx
                 else:
                     raise ValueError('pluggable_list.index(x): x not in list')
@@ -398,22 +394,22 @@ class RemoveMixin:
         ctl, data = get_list_attrs(self)
 
         with ctl.op(self, fetch=True) as invoke:
-            if ctl.has_callback(Hook.search):
+            if ctl.has_callback(constants.Hook.search):
                 for idx, in_value in enumerate(data):
-                    if invoke(Hook.search, in_value, ex_value):
+                    if invoke(constants.Hook.search, in_value, ex_value):
                         break
                 else:
                     raise ValueError('pluggable_list.index(x): x not in list')
             else:
                 for idx, in_value in enumerate(data):
-                    if invoke(Hook.search, in_value, ex_value):
+                    if invoke(constants.Hook.search, in_value, ex_value):
                         break
                 else:
                     raise ValueError('pluggable_list.index(x): x not in list')
 
             try:
-                invoke(Hook.remove, idx, in_value)
-            except CallbackDoesNotExist:
+                invoke(constants.Hook.remove, idx, in_value)
+            except exceptions.CallbackDoesNotExist:
                 pass
 
             del data[idx]
@@ -433,7 +429,7 @@ class ReverseMixin:
         """
         Reverse the elements of the list in place.
         """
-        getattr(self, DATA_ATTR).reverse()
+        getattr(self, constants.DATA_ATTR).reverse()
 
 
 class SortMixin(ReverseMixin):
@@ -446,16 +442,16 @@ class SortMixin(ReverseMixin):
         """
         def wrapper(func):
             def wrapped(value):
-                value = getattr(self, CONTROL_ATTR).sort_value(self, value)
+                value = getattr(self, constants.CONTROL_ATTR).sort_value(self, value)
                 return func(value)
             return wrapped
 
         if key:
             key = wrapper(key)
         else:
-            key = lambda v: getattr(self, CONTROL_ATTR).sort_value(self, v)
+            key = lambda v: getattr(self, constants.CONTROL_ATTR).sort_value(self, v)
 
-        getattr(self, DATA_ATTR).sort(key=key, reverse=reverse)
+        getattr(self, constants.DATA_ATTR).sort(key=key, reverse=reverse)
 
 
 class PluggableList(BasePluggableList, SetMixin, DelMixin, SearchMixin, SortMixin):

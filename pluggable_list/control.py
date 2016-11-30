@@ -20,8 +20,7 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
 """
 
 import contextlib
-from .constants import  DATA_ATTR, Hook
-from .exceptions import CallbackDoesNotExist
+from . import exceptions, constants
 
 
 class ListProxy:
@@ -52,7 +51,7 @@ class Control:
         try:
             return self._callbacks[hook]
         except KeyError:
-            raise CallbackDoesNotExist(hook)
+            raise exceptions.CallbackDoesNotExist(hook)
 
     def has_callback(self, hook):
         """
@@ -65,9 +64,9 @@ class Control:
         try:
             callback_func = self._callbacks[hook]
         except KeyError:
-            raise CallbackDoesNotExist(hook)
+            raise exceptions.CallbackDoesNotExist(hook)
         else:
-            proxy = ListProxy(getattr(pl_obj, DATA_ATTR))
+            proxy = ListProxy(getattr(pl_obj, constants.DATA_ATTR))
             return callback_func(pl_obj, hook, proxy, *args, **kwargs)
 
     def invoke_callback_safe(self, default):
@@ -77,13 +76,13 @@ class Control:
             except KeyError:
                 return default
             else:
-                proxy = ListProxy(getattr(pl_obj, DATA_ATTR))
+                proxy = ListProxy(getattr(pl_obj, constants.DATA_ATTR))
                 return callback_func(pl_obj, hook, proxy, *args, **kwargs)
 
         return invoke
 
     def _revert(self, pl_obj):
-        self.invoke_callback_safe(None)(Hook.revert, pl_obj)
+        self.invoke_callback_safe(None)(constants.Hook.revert, pl_obj)
 
     @contextlib.contextmanager
     def op(self, pl_obj, *, modify=False, fetch=False, safe=False):
@@ -96,7 +95,7 @@ class Control:
         callback is if one exists.
         """
         if modify:
-            save_point = getattr(pl_obj, DATA_ATTR).copy()
+            save_point = getattr(pl_obj, constants.DATA_ATTR).copy()
 
         invoked_callbacks = []
 
@@ -109,12 +108,12 @@ class Control:
             def func(hook, *args, **kwargs):
                 try:
                     return invoke(hook, *args, **kwargs)
-                except CallbackDoesNotExist:
+                except exceptions.CallbackDoesNotExist:
                     return default
             return func
 
         self.invoke_callback_safe(None)(
-            Hook.begin_operation, pl_obj, modify=modify, fetch=fetch
+            constants.Hook.begin_operation, pl_obj, modify=modify, fetch=fetch
         )
 
         if safe:
@@ -127,7 +126,7 @@ class Control:
         except:
             if modify:
                 self._revert(pl_obj)
-                setattr(pl_obj, DATA_ATTR, save_point)
+                setattr(pl_obj, constants.DATA_ATTR, save_point)
             raise
         finally:
-            self.invoke_callback_safe(None)(Hook.end_operation, pl_obj)
+            self.invoke_callback_safe(None)(constants.Hook.end_operation, pl_obj)
