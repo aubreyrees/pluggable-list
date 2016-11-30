@@ -20,18 +20,19 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
 """
 
 
+import enum
+
+
 DATA_ATTR = '_pluggable_list_data'
 CONTROL_ATTR = '_pluggable_list_control'
 REGISTER_ATTR = '_pluggable_list_register'
-GET_HOOK = 0
-SET_HOOK = 1
-REMOVE_HOOK = 2
-SORT_HOOK = 3
-BEGIN_OPERATION_HOOK = 4
-END_OPERATION_HOOK = 5
-REVERT_HOOK = 6
 
-HOOKS = {
-    GET_HOOK, SET_HOOK, REMOVE_HOOK, SORT_HOOK, BEGIN_OPERATION_HOOK,
-    END_OPERATION_HOOK, REVERT_HOOK
-}
+
+class Hook(enum.IntEnum):
+    get = 0
+    set = 1
+    remove = 2
+    sort = 3
+    begin_operation = 4
+    end_operation = 5
+    revert = 6

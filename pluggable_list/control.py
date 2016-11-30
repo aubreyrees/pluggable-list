@@ -20,10 +20,7 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
 """
 
 import contextlib
-from .constants import (
-    DATA_ATTR, GET_HOOK, SET_HOOK, REMOVE_HOOK, SORT_HOOK,
-    BEGIN_OPERATION_HOOK, END_OPERATION_HOOK, REVERT_HOOK
-)
+from .constants import  DATA_ATTR, Hook
 from .exceptions import CallbackDoesNotExist
 
 
@@ -86,7 +83,7 @@ class Control:
         return invoke
 
     def _revert(self, pl_obj):
-        self.invoke_callback_safe(None)(REVERT_HOOK, pl_obj)
+        self.invoke_callback_safe(None)(Hook.revert, pl_obj)
 
     @contextlib.contextmanager
     def op(self, pl_obj, *, modify=False, fetch=False, safe=False):
@@ -117,7 +114,7 @@ class Control:
             return func
 
         self.invoke_callback_safe(None)(
-            BEGIN_OPERATION_HOOK, pl_obj, modify=modify, fetch=fetch
+            Hook.begin_operation, pl_obj, modify=modify, fetch=fetch
         )
 
         if safe:
@@ -133,4 +130,4 @@ class Control:
                 setattr(pl_obj, DATA_ATTR, save_point)
             raise
         finally:
-            self.invoke_callback_safe(None)(END_OPERATION_HOOK, pl_obj)
+            self.invoke_callback_safe(None)(Hook.end_operation, pl_obj)

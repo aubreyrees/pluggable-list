@@ -1,8 +1,5 @@
 import pytest
-from pluggable_list.constants import (
-    CONTROL_ATTR, GET_HOOK, SET_HOOK, REMOVE_HOOK, SORT_HOOK, BEGIN_OPERATION_HOOK,
-    END_OPERATION_HOOK, REVERT_HOOK
-)
+from pluggable_list.constants import  CONTROL_ATTR, Hook
 
 
 l = pytest.pluggable_list
@@ -25,13 +22,13 @@ def test_single_parent_inheritance(callback_attrs, basic_list_constructor):
     ctl = getattr(child_cls, CONTROL_ATTR)
 
     hook_map = [
-        ('get', GET_HOOK),
-        ('set', SET_HOOK),
-        ('remove', REMOVE_HOOK),
-        ('sort', SORT_HOOK),
-        ('revert', REVERT_HOOK),
-        ('begin_operation', BEGIN_OPERATION_HOOK),
-        ('end_operation', END_OPERATION_HOOK),
+        ('get', Hook.get),
+        ('set', Hook.set),
+        ('remove', Hook.remove),
+        ('sort', Hook.sort),
+        ('revert', Hook.revert),
+        ('begin_operation', Hook.begin_operation),
+        ('end_operation', Hook.end_operation),
     ]
     
     for name, const in hook_map:
@@ -50,13 +47,13 @@ def test_single_parent_inheritance_with_only_inherited_callbacks(basic_list_cons
     ctl = getattr(child_cls, CONTROL_ATTR)
 
     hook_map = [
-        ('get', GET_HOOK),
-        ('set', SET_HOOK),
-        ('remove', REMOVE_HOOK),
-        ('sort', SORT_HOOK),
-        ('revert', REVERT_HOOK),
-        ('begin_operation', BEGIN_OPERATION_HOOK),
-        ('end_operation', END_OPERATION_HOOK),
+        ('get', Hook.get),
+        ('set', Hook.set),
+        ('remove', Hook.remove),
+        ('sort', Hook.sort),
+        ('revert', Hook.revert),
+        ('begin_operation', Hook.begin_operation),
+        ('end_operation', Hook.end_operation),
     ]
     
     for name, const in hook_map:
@@ -75,13 +72,13 @@ def test_multi_parent_inheritance_with_pure_inherited_callbacks(basic_list_const
     ctl = getattr(child_cls, CONTROL_ATTR)
 
     hook_map = [
-        ('get', GET_HOOK),
-        ('set', SET_HOOK),
-        ('remove', REMOVE_HOOK),
-        ('sort', SORT_HOOK),
-        ('revert', REVERT_HOOK),
-        ('begin_operation', BEGIN_OPERATION_HOOK),
-        ('end_operation', END_OPERATION_HOOK),
+        ('get', Hook.get),
+        ('set', Hook.set),
+        ('remove', Hook.remove),
+        ('sort', Hook.sort),
+        ('revert', Hook.revert),
+        ('begin_operation', Hook.begin_operation),
+        ('end_operation', Hook.end_operation),
     ]
     
     for name, const in hook_map:

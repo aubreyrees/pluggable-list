@@ -8,8 +8,7 @@ from contextlib import contextmanager
 import pluggable_list
 from pluggable_list.bases import BasePluggableList, CallbackMixin
 from pluggable_list.constants import (
-    DATA_ATTR, GET_HOOK, SET_HOOK, REMOVE_HOOK, SORT_HOOK,
-    BEGIN_OPERATION_HOOK, END_OPERATION_HOOK, REVERT_HOOK
+    DATA_ATTR, Hook
 )
 
 
@@ -242,41 +241,41 @@ def get_cb(proxy, idx, value):
     """
     Build the expected registry entry for a get callback.
     """
-    return ('get', [GET_HOOK, list(proxy), idx, value], {})
+    return ('get', [Hook.get, list(proxy), idx, value], {})
 
 
 def set_cb(proxy, idx, value):
     """
     Build the expected registry entry for a set callback.
     """
-    return ('set', [SET_HOOK, list(proxy), idx, value], {})
+    return ('set', [Hook.set, list(proxy), idx, value], {})
 
 
 def remove_cb(proxy, idx, value):
     """
     Build the expected registry entry for a remove callback.
     """
-    return ('remove', [REMOVE_HOOK, list(proxy), idx, value], {})
+    return ('remove', [Hook.remove, list(proxy), idx, value], {})
 
 
 def sort_cb(proxy, value):
     """
     Build the expected registry entry for a sort callback.
     """
-    return ('sort', [SORT_HOOK, list(proxy), value], {})
+    return ('sort', [Hook.sort, list(proxy), value], {})
 
 
 def begin_op_cb(proxy, op_type):
     kwargs = {k: k in op_type for k in ('modify', 'fetch')}
-    return ('begin_operation', [BEGIN_OPERATION_HOOK, list(proxy)], kwargs)
+    return ('begin_operation', [Hook.begin_operation, list(proxy)], kwargs)
 
 
 def end_op_cb(proxy):
-    return ('end_operation', [END_OPERATION_HOOK, list(proxy)], {})
+    return ('end_operation', [Hook.end_operation, list(proxy)], {})
 
 
 def revert_cb(proxy):
-    return ('revert', [REVERT_HOOK, list(proxy)], {})
+    return ('revert', [Hook.revert, list(proxy)], {})
 
 
 CB_CONSTRUCTOR = {

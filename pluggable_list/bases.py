@@ -20,10 +20,7 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
 """
 
 
-from .constants import (
-    CONTROL_ATTR, DATA_ATTR, HOOKS,
-    GET_HOOK, SET_HOOK, REMOVE_HOOK
-)
+from .constants import  CONTROL_ATTR, DATA_ATTR, Hook
 from .control import Control
 from .utils.iter_tools import (
     insertions, attrs_with_a_register, del_indices, restricted_iter
@@ -62,7 +59,7 @@ class PluggableListIter:
                     self._stop = True
                     raise StopIteration()
                 else:
-                    value = invoke(value)(GET_HOOK, self._idx, value)
+                    value = invoke(value)(Hook.get, self._idx, value)
                     self._idx += 1
                     return value
 
@@ -78,14 +75,14 @@ class PluggableListMeta(type):
             for hook in register:
                 if hook in callbacks:
                     raise HookAlreadyRegistered(hook)
-                elif hook in HOOKS:
+                elif hook in Hook:
                     callbacks[hook] = attr
                 else:
                     raise UnknownHook(hook, attr)
 
         bases_iter = iter(bases)
 
-        unseen_hooks = HOOKS.difference(callbacks)
+        unseen_hooks = set(Hook).difference(callbacks)
 
         while unseen_hooks:
             try:
@@ -134,7 +131,7 @@ class BasePluggableList(CallbackMixin):
                 self, modify=True, safe=True
             ) as invoke:
                 for idx, value in enumerate(iterable_obj):
-                    data.append(invoke(value)(SET_HOOK, idx, value))
+                    data.append(invoke(value)(Hook.set, idx, value))
 
     def copy(self):
         """
@@ -148,7 +145,7 @@ class BasePluggableList(CallbackMixin):
         with ctl.op(self, fetch=True, safe=True) as invoke:
             def get(idx):
                 value = data[idx]
-                return invoke(value)(GET_HOOK, idx, value)
+                return invoke(value)(Hook.get, idx, value)
 
             if isinstance(spec, slice):
                 return [get(idx) for idx in range(*spec.indices(len(data)))]
@@ -168,8 +165,8 @@ class BasePluggableList(CallbackMixin):
         ctl, data = get_list_attrs(self)
 
         with ctl.op(self, fetch=True) as invoke:
-            if ctl.has_callback(SEARCH_HOOK):
-                return any(invoke(SEARCH_HOOK, v, value) for v in data)
+            if ctl.has_callback(Hook.search):
+                return any(invoke(Hook.search, v, value) for v in data)
             else:
                 return any(v == value for v in data)
 
@@ -210,7 +207,7 @@ class SetItemMixin:
                             return None
 
                 for idx in del_indices(indices):
-                    invoke(None)(REMOVE_HOOK, idx, data[idx])
+                    invoke(None)(Hook.remove, idx, data[idx])
                     del data[idx]
 
                 if spec.step is None or spec.step > 0:
@@ -239,7 +236,7 @@ class SetItemMixin:
                     for idx, value_to_set in pair_iter:
                         data.insert(
                             idx,
-                            invoke(value_to_set)(SET_HOOK, idx, value_to_set)
+                            invoke(value_to_set)(Hook.set, idx, value_to_set)
                         )
                 except (ToFewValues, ToManyValues) as exp:
                     raise ValueError(
@@ -249,9 +246,9 @@ class SetItemMixin:
                     )
             else:
                 idx = len(data) + spec if spec < 0 else spec
-                invoke(None)(REMOVE_HOOK, idx, data[idx])
+                invoke(None)(Hook.remove, idx, data[idx])
                 del data[idx]
-                data.insert(idx, invoke(value)(SET_HOOK, idx, value))
+                data.insert(idx, invoke(value)(Hook.set, idx, value))
 
 
 class AppendMixin:
@@ -264,7 +261,7 @@ class AppendMixin:
         """
         ctl, data = get_list_attrs(self)
         with ctl.op(self, modify=True, safe=True) as invoke:
-            data.append(invoke(value)(SET_HOOK, len(data), value))
+            data.append(invoke(value)(Hook.set, len(data), value))
 
 
     def extend(self, iterable_obj):
@@ -275,7 +272,7 @@ class AppendMixin:
         ctl, data = get_list_attrs(self)
         with ctl.op(self, safe=True, modify=True) as invoke:
             for idx, value in enumerate(iterable_obj, start=len(data)):
-                data.append(invoke(value)(SET_HOOK, idx, value))
+                data.append(invoke(value)(Hook.set, idx, value))
 
 
 class InsertMixin(AppendMixin):
@@ -290,7 +287,7 @@ class InsertMixin(AppendMixin):
         ctl, data = get_list_attrs(self)
         with ctl.op(self, modify=True, safe=True) as invoke:
             idx = max(idx + len(data), 0) if idx < 0 else min(idx, len(data))
-            data.insert(idx, invoke(value)(SET_HOOK, idx, value))
+            data.insert(idx, invoke(value)(Hook.set, idx, value))
 
 
 class SetMixin(InsertMixin, SetItemMixin):
@@ -308,7 +305,7 @@ class ClearMixin:
         ctl, data = get_list_attrs(self)
         with ctl.op(self, modify=True, safe=True) as invoke:
             while data:
-                invoke(None)(REMOVE_HOOK, 0, data[0])
+                invoke(None)(Hook.remove, 0, data[0])
                 del data[0]
 
 
@@ -327,7 +324,7 @@ class DelMixin(ClearMixin):
         with ctl.op(self, modify=True, fetch=True, safe=True) as invoke:
             idx = len(data) if idx is None else idx
             value = data[idx]
-            value = invoke(value)(REMOVE_HOOK, idx, value)
+            value = invoke(value)(Hook.remove, idx, value)
             del data[idx]
 
     def __delitem__(self, spec):
@@ -338,11 +335,11 @@ class DelMixin(ClearMixin):
                 indices = tuple(range(*spec.indices(len(data))))
 
                 for idx in del_indices(indices):
-                    invoke(None)(REMOVE_HOOK, idx, data[idx])
+                    invoke(None)(Hook.remove, idx, data[idx])
                     del data[idx]
             else:
                 idx = len(data) + spec if spec < 0 else spec
-                invoke(None)(REMOVE_HOOK, idx, data[idx])
+                invoke(None)(Hook.remove, idx, data[idx])
                 del data[idx]
 
 
@@ -357,8 +354,8 @@ class CountMixin:
         ctl, data = get_list_attrs(self)
 
         with ctl.op(self, fetch=True) as invoke:
-            if ctl.has_callback(SEARCH_HOOK):
-                return sum(1 for v in data if invoke(SEARCH_HOOK, v, value))
+            if ctl.has_callback(Hook.search):
+                return sum(1 for v in data if invoke(Hook.search, v, value))
             else:
                 return sum(1 for v in data if v == value)
 
@@ -375,9 +372,9 @@ class IndexMixin:
         ctl, data = get_list_attrs(self)
 
         with ctl.op(self, fetch=True) as invoke:
-            if ctl.has_callback(SEARCH_HOOK):
+            if ctl.has_callback(Hook.search):
                 for idx, in_value in enumerate(data):
-                    if invoke(SEARCH_HOOK, in_value, value):
+                    if invoke(Hook.search, in_value, value):
                         return idx
                 else:
                     raise ValueError('pluggable_list.index(x): x not in list')
@@ -401,21 +398,21 @@ class RemoveMixin:
         ctl, data = get_list_attrs(self)
 
         with ctl.op(self, fetch=True) as invoke:
-            if ctl.has_callback(SEARCH_HOOK):
+            if ctl.has_callback(Hook.search):
                 for idx, in_value in enumerate(data):
-                    if invoke(SEARCH_HOOK, in_value, ex_value):
+                    if invoke(Hook.search, in_value, ex_value):
                         break
                 else:
                     raise ValueError('pluggable_list.index(x): x not in list')
             else:
                 for idx, in_value in enumerate(data):
-                    if invoke(SEARCH_HOOK, in_value, ex_value):
+                    if invoke(Hook.search, in_value, ex_value):
                         break
                 else:
                     raise ValueError('pluggable_list.index(x): x not in list')
 
             try:
-                invoke(REMOVE_HOOK, idx, in_value)
+                invoke(Hook.remove, idx, in_value)
             except CallbackDoesNotExist:
                 pass
 

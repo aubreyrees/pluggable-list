@@ -1,5 +1,5 @@
 import pytest
-from pluggable_list.constants import REGISTER_ATTR, SET_HOOK
+from pluggable_list.constants import REGISTER_ATTR, Hook
 from pluggable_list.bases import BasePluggableList
 from pluggable_list.exceptions import UnknownHook, HookAlreadyRegistered
 
@@ -27,8 +27,8 @@ def test_hook_already_registered():
     def func2(self):
         pass
 
-    setattr(func1, REGISTER_ATTR, {SET_HOOK})
-    setattr(func2, REGISTER_ATTR, {SET_HOOK})
+    setattr(func1, REGISTER_ATTR, {Hook.set})
+    setattr(func2, REGISTER_ATTR, {Hook.set})
 
     attrs = {
         'test1': func1,
@@ -38,4 +38,4 @@ def test_hook_already_registered():
         type('testcls', (BasePluggableList,), attrs)
     except Exception as exp:
         assert exp.__class__ == HookAlreadyRegistered
-        assert exp.hook == SET_HOOK
+        assert exp.hook == Hook.set

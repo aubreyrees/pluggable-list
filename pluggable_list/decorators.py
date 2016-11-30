@@ -19,11 +19,7 @@ You should have received a copy of the GNU General Public License
 along with this program.  If not, see <http://www.gnu.org/licenses/>.
 """
 
-from .constants import (
-    REGISTER_ATTR,
-    GET_HOOK, SET_HOOK, REMOVE_HOOK, SORT_HOOK, BEGIN_OPERATION_HOOK,
-    END_OPERATION_HOOK, REVERT_HOOK
-)
+from .constants import REGISTER_ATTR, Hook
 
 
 def _register_hook(func, hook):
@@ -45,7 +41,7 @@ def get_callback():
         Set a flag on the method `func` so that when the method's class is
         created the creater knows to register the method as a get callback.
         """
-        _register_hook(func, GET_HOOK)
+        _register_hook(func, Hook.get)
         return func
     return wrapper
 
@@ -60,7 +56,7 @@ def set_callback():
         Set a flag on the method `func` so that when the method's class is
         created the creater knows to register the method as a set callback.
         """
-        _register_hook(func, SET_HOOK)
+        _register_hook(func, Hook.set)
         return func
     return wrapper
 
@@ -75,7 +71,7 @@ def remove_callback():
         Set a flag on the method `func` so that when the method's class is
         created the creater knows to register the method as a del callback.
         """
-        _register_hook(func, REMOVE_HOOK)
+        _register_hook(func, Hook.remove)
         return func
     return wrapper
 
@@ -90,7 +86,7 @@ def sort_callback():
         Set a flag on the method `func` so that when the method's class is
         created the creater knows to register the method as a sort callback.
         """
-        _register_hook(func, SORT_HOOK)
+        _register_hook(func, Hook.sort)
         return func
     return wrapper
 
@@ -106,7 +102,7 @@ def begin_operation_callback():
         created the creater knows to register the method as a begin operation
         callback.
         """
-        _register_hook(func, BEGIN_OPERATION_HOOK)
+        _register_hook(func, Hook.begin_operation)
         return func
     return wrapper
 
@@ -122,7 +118,7 @@ def end_operation_callback():
         created the creater knows to register the method as a end operation
         callback.
         """
-        _register_hook(func, END_OPERATION_HOOK)
+        _register_hook(func, Hook.end_operation)
         return func
     return wrapper
 
@@ -137,6 +133,6 @@ def revert_callback():
         Set a flag on the method `func` so that when the method's class is
         created the creater knows to register the method as a revert callback.
         """
-        _register_hook(func, REVERT_HOOK)
+        _register_hook(func, Hook.revert)
         return func
     return wrapper
